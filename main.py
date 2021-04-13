@@ -6,10 +6,15 @@ import PySimpleGUI as sg
 
 from httpDirectorySync import HttpDirectorySync
 
-# Press the green button in the gutter to run the script.
+# Main
 if __name__ == '__main__':
 
+    # Initialize
     sync = HttpDirectorySync()
+
+    #Window Column Definitions
+
+    # Settings and Filetypes
     settings_controls_column = [
 
         [
@@ -48,6 +53,8 @@ if __name__ == '__main__':
         ],
 
     ]
+
+    # URL Input and Remote Dir List
     web_url_column = [
         [
             sg.Text('HTTP Directory URL'),
@@ -68,6 +75,8 @@ if __name__ == '__main__':
         ],
 
     ]
+
+    # Local Directory search and list
     file_list_column = [
 
         [
@@ -91,8 +100,7 @@ if __name__ == '__main__':
 
     ]
 
-    # For now will only show the name of the file that was chosen
-
+    # Sync Button and output
     remote_sync_column = [
         [sg.Button("Sync", enable_events=True, key="-SYNC-")],
         [sg.HSeparator()],
@@ -122,6 +130,7 @@ if __name__ == '__main__':
     # Add Layout to window
     window = sg.Window("HTTP Directory Sync", layout)
 
+    # GUI Loop
     while True:
 
         event, values = window.read()
@@ -129,7 +138,8 @@ if __name__ == '__main__':
         if event == "Exit" or event == sg.WIN_CLOSED:
             window.close()
             break
-        # Folder name was filled in, make a list of files in the folder
+
+        # Save/Load Settings
         if event == "-SETTINGS SAVE-":
             authUser = values["-HTTP User-"]
             authPass = values["-HTTP Pass-"]
@@ -147,6 +157,8 @@ if __name__ == '__main__':
             window["-URL-"].update(sg.user_settings_get_entry('url'))
             window["-FOLDER-"].update(sg.user_settings_get_entry('folder'))
             window["-FILETYPES-"].update(sg.user_settings_get_entry('ftypes'))
+
+        # Handle Local Directory
         elif event == "-FOLDER-":
 
             folder = values["-FOLDER-"]
@@ -180,21 +192,7 @@ if __name__ == '__main__':
 
             window["-FILE LIST-"].update(fnames)
 
-        elif event == "-FILE LIST-":  # A file was chosen from the listbox
-
-            try:
-
-                filename = os.path.join(
-
-                    values["-FOLDER-"], values["-FILE LIST-"][0]
-
-                )
-
-                window["-TOUT-"].update(filename)
-
-            except:
-
-                pass
+        # Get Remote Contents when URl has been added and search was pressed
         elif event == "-URL Search-":
             if values["-URL-"] != "":
                 window["-Remote Text-"].update(values["-URL-"])
@@ -215,6 +213,8 @@ if __name__ == '__main__':
                     out.append(file[0])
 
                 window["-Remote DIR LIST-"].update(out)
+
+        # Switch Remote directory after item has been clicked and is directory
         elif event == "-Remote DIR LIST-":
             url = values["-URL-"]
             dir = values["-Remote DIR LIST-"][0]
@@ -240,6 +240,7 @@ if __name__ == '__main__':
                 out.append(file[0])
             window["-Remote Text-"].update(urlNew)
             window["-Remote DIR LIST-"].update(out)
+        # Run sync
         elif event == "-SYNC-":
             if values["-URL-"] != "" and values["-FOLDER-"] != "":
                 if values["-HTTP User-"] != "":
