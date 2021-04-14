@@ -4,7 +4,7 @@ setup(
     name='httpDirectorySync',
     version='v0.1-alpha',
     packages=[
-        'PySimpleGUI',
+        'pysimplegui',
         'future',
         'setuptools',
         'beautifulsoup4',
