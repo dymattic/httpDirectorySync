@@ -1,0 +1,5 @@
+PySimpleGUI~=4.39.1
+future~=0.18.2
+setuptools~=56.0.0
+beautifulsoup4~=4.9.3
+requests~=2.25.1
