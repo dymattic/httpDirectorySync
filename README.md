@@ -18,7 +18,7 @@ remote HTTP Directories with a local copy.
 ### Unix/Linux
 1. `git clone https://github.com/dymattic/httpDirectorySync.git`
 2. `cd ./httpDirectorySync`
-3. `pip install`
+3. Install requirements listed in requirements.txt
 4. `python ./main.py`
 
 ### Windows
