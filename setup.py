@@ -1,5 +1,6 @@
 from setuptools import setup
 
+# todo: fix/implement this
 setup(
     name='httpDirectorySync',
     version='v0.1-alpha',
