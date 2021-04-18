@@ -17,6 +17,16 @@ class HttpDirectorySync:
     @description: Python class for recursively syncing HTTP Directories to local directory
     """
 
+    def __init__(self):
+        self.download_percent = 0
+
+    def get_percent(self):
+        return self.download_percent
+
+    def reset_percent(self):
+        self.download_percent = 0
+        return True
+
     def gen_auth(self, username=False, password=False):
         """
         @description: generate auth object to be passed to requests
@@ -35,6 +45,26 @@ class HttpDirectorySync:
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
             return sha256_hash.hexdigest()
+
+    def downloadFile(self,credentials, remote_name, url_local, working_dir):
+        if Path(working_dir + remote_name + '.temp').is_file():
+            os.remove(working_dir + remote_name + '.temp')
+        path = working_dir + remote_name + '.temp'
+        with open(path, "wb") as f:
+            print ("Downloading %s" % path)
+            response = requests.get(url_local + remote_name, allow_redirects=True, auth=credentials, stream=True)
+            total_length = response.headers.get('content-length')
+
+            if total_length is None:  # no content length header
+                f.write(response.content)
+            else:
+                dl = 0
+                total_length = int(total_length)
+                for data in response.iter_content(chunk_size=4096):
+                    dl += len(data)
+                    f.write(data)
+                    done = int(100 * dl / total_length)
+                    self.download_percent = done
 
     def http_get_data(self, url_local, credentials):
         if re.search('(/|\\\\)$', url_local) is None:
@@ -83,10 +113,7 @@ class HttpDirectorySync:
             if Path(working_dir + remote_name).is_file():
                 existent_file_hash = self.gen_file_hash(working_dir + remote_name)
                 try:
-                    download = requests.get(url_local + remote_name, allow_redirects=True, auth=credentials)
-                    if Path(working_dir + remote_name + '.temp').is_file():
-                        os.remove(working_dir + remote_name + '.temp')
-                    open(working_dir + remote_name + '.temp', 'wb').write(download.content)
+                    self.downloadFile(credentials, remote_name, url_local, working_dir)
                 except OSError as e:
                     pprint(e)
                     return False
@@ -102,13 +129,14 @@ class HttpDirectorySync:
                     os.remove(working_dir + remote_name + '.temp')
             else:
                 try:
-                    download = requests.get(url_local + remote_name, allow_redirects=True, auth=credentials)
-                    open('' + working_dir + remote_name, 'wb').write(download.content)
+                    self.downloadFile(credentials, remote_name, url_local, working_dir)
                 except OSError as e:
                     pprint('Error while trying to create file: ' + working_dir + remote_name)
                     pprint(e)
                     return False
+                os.rename(working_dir + remote_name + '.temp', working_dir + 'original_' + remote_name)
         return 'Files Synced'
+
 
     def sync_recurse(self, url_local, working_dir, credentials, filetypes=''):
         working_dir = working_dir.strip('/').strip('\\') + "/"
