@@ -258,11 +258,16 @@ class Main:
                     elif self.event == "-Remote DIR LIST-":
                         url = self.values["-URL-"]
                         dir = self.values["-Remote DIR LIST-"][0]
+                        #todo: fix switching directory if file is clicked
                         if dir.strip('/') == "..":
                             urlNew = re.sub('/[a-zA-z0-9\\-_+#]*$', '', url.strip('/'))
                         else:
                             urlNew = url.strip('/') + '/' + dir
-                        self.window["-URL-"].update(urlNew)
+
+                        if(re.search('\\..{1,6}$',urlNew)):
+                            urlNew = url
+                        else:
+                            self.window["-URL-"].update(urlNew)
                         if self.values["-HTTP User-"] != "":
                             if self.values["-HTTP Pass-"] != "":
                                 auth = self.sync.gen_auth(username=self.values["-HTTP User-"], password=self.values["-HTTP Pass-"])

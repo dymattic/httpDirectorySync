@@ -5,6 +5,10 @@ from pathlib import Path
 from pprint import pprint
 import re
 
+import datetime
+from dateutil.parser import parse as parsedate
+import pytz
+
 import bs4
 import requests
 from requests.auth import HTTPBasicAuth
@@ -105,28 +109,41 @@ class HttpDirectorySync:
         return files, folders
 
     def sync_remote(self, url_local, working_dir, files, credentials):
+        utc = pytz.UTC
         url_local = url_local.strip('/') + '/'
         working_dir = working_dir.strip('/').strip('\\') + '/'
         for file in files:
             remote_name = file[0]
             pprint("Downloading " + remote_name)
             if Path(working_dir + remote_name).is_file():
+                header = requests.head(url_local + remote_name, allow_redirects=True, auth=credentials)
+                url_date = parsedate(header.headers['last-modified'])
+                file_time = utc.localize(datetime.datetime.fromtimestamp(os.path.getmtime(working_dir + remote_name)))
+                file_orig_time = file_time
+                if Path(working_dir + 'original_' + remote_name).is_file():
+                    file_orig_time = utc.localize(
+                        datetime.datetime.fromtimestamp(os.path.getmtime(working_dir + 'original_' + remote_name)))
                 existent_file_hash = self.gen_file_hash(working_dir + remote_name)
-                try:
-                    self.downloadFile(credentials, remote_name, url_local, working_dir)
-                except OSError as e:
-                    pprint(e)
-                    return False
-                new_file_hash = self.gen_file_hash(working_dir + remote_name + '.temp')
+                if url_date > file_time and url_date > file_orig_time:
+                    if Path(working_dir + remote_name + '.temp').is_file():
+                        os.remove(working_dir + remote_name + '.temp')
+                    try:
+                        self.downloadFile(credentials, remote_name, url_local, working_dir)
+                    except OSError as e:
+                        pprint(e)
+                        return False
+                    new_file_hash = self.gen_file_hash(working_dir + remote_name + '.temp')
 
-                if new_file_hash != existent_file_hash:
-                    if Path(working_dir + 'original_' + remote_name).is_file():
-                        os.remove(working_dir + 'original_' + remote_name)
-                    os.rename(working_dir + remote_name + '.temp', working_dir + 'original_' + remote_name)
-                    pprint("File \"" + remote_name + "\" containing changes...")
-                    pprint("Saving as \"" + 'original_' + remote_name + "\"")
+                    if new_file_hash != existent_file_hash:
+                        if Path(working_dir + 'original_' + remote_name).is_file():
+                            os.remove(working_dir + 'original_' + remote_name)
+                        os.rename(working_dir + remote_name + '.temp', working_dir + 'original_' + remote_name)
+                        pprint("File \"" + remote_name + "\" containing changes...")
+                        pprint("Saving as \"" + 'original_' + remote_name + "\"")
+                    else:
+                        os.remove(working_dir + remote_name + '.temp')
                 else:
-                    os.remove(working_dir + remote_name + '.temp')
+                    print("Skipping " + remote_name + "...")
             else:
                 try:
                     self.downloadFile(credentials, remote_name, url_local, working_dir)
@@ -134,7 +151,7 @@ class HttpDirectorySync:
                     pprint('Error while trying to create file: ' + working_dir + remote_name)
                     pprint(e)
                     return False
-                os.rename(working_dir + remote_name + '.temp', working_dir + 'original_' + remote_name)
+                os.rename(working_dir + remote_name + '.temp', working_dir + remote_name)
         return 'Files Synced'
 
 
